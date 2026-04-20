@@ -35,7 +35,7 @@ const excelInputRef = ref(null);
 // Fetch all targets from backend
 const fetchAlumni = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/all-alumni/`);
+    const response = await fetch(`${API_BASE_URL}all-alumni/`);
 
     const text = await response.text(); // ambil response mentah
     console.log("API URL:", API_BASE_URL);
@@ -58,7 +58,7 @@ const fetchAlumni = async () => {
 // Fetch evidence for a specific alumni
 const fetchEvidence = async (id) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/evidence/${id}`);
+    const response = await fetch(`${API_BASE_URL}evidence/${id}`);
     if (!response.ok) throw new Error("Failed to fetch evidence");
     selectedEvidence.value = await response.json();
     viewingAlumniId.value = id;
@@ -86,7 +86,7 @@ const submitManualEvidence = async () => {
   loading.value = true;
   try {
     const response = await fetch(
-      `${API_BASE_URL}/evidence/${viewingAlumniId.value}`,
+      `${API_BASE_URL}evidence/${viewingAlumniId.value}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -115,7 +115,7 @@ const deleteEvidence = async (evidenceId) => {
 
   loading.value = true;
   try {
-    const response = await fetch(`${API_BASE_URL}/evidence/${evidenceId}`, {
+    const response = await fetch(`${API_BASE_URL}evidence/${evidenceId}`, {
       method: "DELETE",
     });
 
@@ -143,7 +143,7 @@ const addAlumni = async () => {
 
   loading.value = true;
   try {
-    const response = await fetch(`${API_BASE_URL}/targets/`, {
+    const response = await fetch(`${API_BASE_URL}targets/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newAlumni.value),
@@ -184,7 +184,7 @@ const updateAlumni = async () => {
   loading.value = true;
   try {
     const response = await fetch(
-      `${API_BASE_URL}/targets/${editingAlumniId.value}`,
+      `${API_BASE_URL}targets/${editingAlumniId.value}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -212,7 +212,7 @@ const deleteAlumni = async (alumniId) => {
     return;
   loading.value = true;
   try {
-    const response = await fetch(`${API_BASE_URL}/targets/${alumniId}`, {
+    const response = await fetch(`${API_BASE_URL}targets/${alumniId}`, {
       method: "DELETE",
     });
     if (!response.ok) throw new Error("Failed to delete alumni");
@@ -235,7 +235,7 @@ const trackAlumni = async (id) => {
   loading.value = true;
   message.value = "Sedang melacak...";
   try {
-    const response = await fetch(`${API_BASE_URL}/track/${id}`);
+    const response = await fetch(`${API_BASE_URL}track/${id}`);
     if (!response.ok) throw new Error("Failed to track alumni");
 
     const result = await response.json();
@@ -280,7 +280,7 @@ const uploadExcel = async () => {
     const formData = new FormData();
     formData.append("file", excelFile.value);
 
-    const response = await fetch(`${API_BASE_URL}/admin/import-excel`, {
+    const response = await fetch(`${API_BASE_URL}admin/import-excel`, {
       method: "POST",
       body: formData,
     });
@@ -311,7 +311,7 @@ const startTrackingAll = async () => {
   message.value = "Sedang menjalankan tracking semua alumni...";
 
   try {
-    const response = await fetch(`${API_BASE_URL}/track-all`, {
+    const response = await fetch(`${API_BASE_URL}track-all`, {
       method: "POST", // Sesuai saran backend sebelumnya menggunakan POST
     });
 
