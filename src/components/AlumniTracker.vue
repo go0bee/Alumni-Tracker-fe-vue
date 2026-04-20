@@ -35,7 +35,7 @@ const excelInputRef = ref(null);
 // Fetch all targets from backend
 const fetchAlumni = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/all-alumni/`);
+    const response = await fetch(`${API_BASE_URL}all-alumni/`);
 
     const text = await response.text(); // ambil response mentah
     // console.log("API URL:", API_BASE_URL);
@@ -235,7 +235,7 @@ const trackAlumni = async (id) => {
   loading.value = true;
   message.value = "Sedang melacak...";
   try {
-    const response = await fetch(`${API_BASE_URL}/track/${id}`);
+    const response = await fetch(`${API_BASE_URL}track/${id}`);
     if (!response.ok) throw new Error("Failed to track alumni");
 
     const result = await response.json();
@@ -311,7 +311,7 @@ const startTrackingAll = async () => {
   message.value = "Sedang menjalankan tracking semua alumni...";
 
   try {
-    const response = await fetch(`${API_BASE_URL}/track-all`, {
+    const response = await fetch(`${API_BASE_URL}track-all`, {
       method: "POST", // Sesuai saran backend sebelumnya menggunakan POST
     });
 
