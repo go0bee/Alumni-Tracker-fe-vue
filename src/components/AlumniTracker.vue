@@ -39,7 +39,7 @@ const fetchAlumni = async () => {
 
     const text = await response.text(); // ambil response mentah
     // console.log("API URL:", API_BASE_URL);
-    // console.log("RAW RESPONSE:", text);
+    console.log("RAW RESPONSE:", text);
     // console.log("ENV:", import.meta.env);
     // console.log("API:", import.meta.env.VITE_API_URL);
 
