@@ -517,9 +517,9 @@ onMounted(() => {
                   <h3>{{ alumni.nama_asli }}</h3>
                   <p class="alumni-id">ID: #{{ alumni.id }}</p>
                 </div>
-                <span :class="['status-badge', alumni.status.toLowerCase()]">
+                <!-- <span :class="['status-badge', alumni.status.toLowerCase()]">
                   {{ alumni.status }}
-                </span>
+                </span> -->
               </div>
 
               <div class="alumni-details">
