@@ -23,18 +23,19 @@ const newEvidence = ref({
   snippet_content: "",
   extracted_score: 1.0,
 });
+const excelFile = ref(null);
+const excelInputRef = ref(null);
 
 // Fetch all targets from backend
 const fetchAlumni = async () => {
-
   try {
     const response = await fetch(`${API_BASE_URL}/targets/`);
 
     const text = await response.text(); // ambil response mentah
-    console.log("API URL:", API_BASE_URL)
+    console.log("API URL:", API_BASE_URL);
     console.log("RAW RESPONSE:", text);
-    console.log("ENV:", import.meta.env)
-    console.log("API:", import.meta.env.VITE_API_URL)
+    console.log("ENV:", import.meta.env);
+    console.log("API:", import.meta.env.VITE_API_URL);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${text}`);
@@ -42,7 +43,6 @@ const fetchAlumni = async () => {
 
     const data = JSON.parse(text);
     alumniList.value = data;
-
   } catch (error) {
     console.error("Error fetching alumni:", error);
     message.value = "Gagal mengambil data alumni";
@@ -251,6 +251,78 @@ const trackAlumni = async (id) => {
   }
 };
 
+// Handle file input
+const handleExcelUpload = (event) => {
+  excelFile.value = event.target.files[0];
+};
+
+// Upload excel to backend
+const uploadExcel = async () => {
+  if (!excelFile.value) {
+    message.value = "Pilih file Excel terlebih dahulu (.xlsx)";
+    return;
+  }
+
+  loading.value = true;
+  message.value = "Sedang upload dan import Excel...";
+
+  try {
+    const formData = new FormData();
+    formData.append("file", excelFile.value);
+
+    const response = await fetch(`${API_BASE_URL}/admin/import-excel`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(errText);
+    }
+
+    const result = await response.json();
+    message.value = `Import selesai. Inserted: ${result.inserted}, Skipped: ${result.skipped}`;
+
+    // excelFile.value = null;
+    await fetchAlumni();
+  } catch (error) {
+    console.error("Error uploading excel:", error);
+    message.value = "Gagal upload/import Excel";
+  } finally {
+    excelFile.value = null;
+    if (excelInputRef.value) excelInputRef.value.value = "";
+    loading.value = false;
+  }
+};
+
+// Start tracking all alumni
+const startTrackingAll = async () => {
+  loading.value = true;
+  message.value = "Sedang menjalankan tracking semua alumni...";
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/track/start`, {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(errText);
+    }
+
+    const result = await response.json();
+    message.value = `Tracking selesai. Total Target: ${result.total_targets}, Evidence ditambah: ${result.total_evidence_added}`;
+
+    await fetchAlumni();
+    activeTab.value = "hasil";
+  } catch (error) {
+    console.error("Error start tracking all:", error);
+    message.value = "Gagal menjalankan tracking semua alumni";
+  } finally {
+    loading.value = false;
+  }
+};
+
 onMounted(() => {
   fetchAlumni();
 });
@@ -301,6 +373,45 @@ onMounted(() => {
 
     <!-- Tracking Tab -->
     <div v-if="activeTab === 'tracking'" class="tab-content">
+      <!-- Import Excel + Start Tracking All -->
+      <div class="card add-card">
+        <div class="card-header">
+          <h2>📂 Import Excel Alumni</h2>
+          <p class="card-subtitle">
+            Upload file Excel alumni (.xlsx) lalu jalankan tracking otomatis
+          </p>
+        </div>
+
+        <div class="card-body">
+          <div class="form-group">
+            <input
+              ref="excelInputRef"
+              type="file"
+              accept=".xlsx"
+              class="input-field"
+              @change="handleExcelUpload"
+            />
+
+            <button
+              @click="uploadExcel"
+              :disabled="loading"
+              class="btn btn-primary btn-block"
+            >
+              <span v-if="!loading">⬆️ Upload & Import Excel</span>
+              <span v-else>Processing...</span>
+            </button>
+
+            <button
+              @click="startTrackingAll"
+              :disabled="loading"
+              class="btn btn-track btn-block"
+            >
+              <span v-if="!loading">🚀 Start Tracking Semua Alumni</span>
+              <span v-else>Tracking...</span>
+            </button>
+          </div>
+        </div>
+      </div>
       <!-- Add Alumni Section -->
       <div class="card add-card">
         <div class="card-header">
