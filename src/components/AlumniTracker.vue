@@ -2,7 +2,13 @@
 import { ref, onMounted } from "vue";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-
+const getPlatformLabel = (link) => {
+  if (link.includes("linkedin.com")) return "LinkedIn";
+  if (link.includes("instagram.com")) return "Instagram";
+  if (link.includes("facebook.com")) return "Facebook";
+  if (link.includes("tiktok.com")) return "TikTok";
+  return "Social Media";
+};
 const alumniList = ref([]);
 const newAlumni = ref({
   nama: "",
@@ -29,13 +35,13 @@ const excelInputRef = ref(null);
 // Fetch all targets from backend
 const fetchAlumni = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/targets/`);
+    const response = await fetch(`${API_BASE_URL}/all-alumni/`);
 
     const text = await response.text(); // ambil response mentah
-    console.log("API URL:", API_BASE_URL);
-    console.log("RAW RESPONSE:", text);
-    console.log("ENV:", import.meta.env);
-    console.log("API:", import.meta.env.VITE_API_URL);
+    // console.log("API URL:", API_BASE_URL);
+    // console.log("RAW RESPONSE:", text);
+    // console.log("ENV:", import.meta.env);
+    // console.log("API:", import.meta.env.VITE_API_URL);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${text}`);
@@ -234,13 +240,17 @@ const trackAlumni = async (id) => {
 
     const result = await response.json();
     message.value = `Pelacakan selesai: Status ${result.current_status}, Score ${result.score}`;
+
+    // Penyesuaian mapping data
     trackingResult.value = {
       targetId: id,
       status: result.current_status,
       score: result.score,
+      // Data sekarang berisi top 1 per platform (LinkedIn, IG, dll)
       top_results: result.detail.top_results || [],
       best_match: result.detail.best_match || null,
     };
+
     await fetchAlumni();
     activeTab.value = "hasil";
   } catch (error) {
@@ -301,8 +311,8 @@ const startTrackingAll = async () => {
   message.value = "Sedang menjalankan tracking semua alumni...";
 
   try {
-    const response = await fetch(`${API_BASE_URL}/track/start`, {
-      method: "POST",
+    const response = await fetch(`${API_BASE_URL}/track-all`, {
+      method: "POST", // Sesuai saran backend sebelumnya menggunakan POST
     });
 
     if (!response.ok) {
@@ -605,14 +615,23 @@ onMounted(() => {
                 :key="idx"
                 class="result-item"
               >
-                <div class="result-rank">{{ idx + 1 }}</div>
+                <div class="result-rank">
+                  {{ getPlatformLabel(item.link)[0] }}
+                </div>
+
                 <div class="result-content">
-                  <h4>{{ item.title }}</h4>
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <span class="platform-tag">{{
+                      getPlatformLabel(item.link)
+                    }}</span>
+                    <h4>{{ item.title }}</h4>
+                  </div>
                   <p class="snippet">{{ item.snippet }}</p>
                   <a :href="item.link" target="_blank" class="result-link"
-                    >Lihat Link →</a
+                    >Buka Profil {{ getPlatformLabel(item.link) }} →</a
                   >
                 </div>
+
                 <div class="result-score">
                   <span class="score-badge"
                     >{{ (item.score * 100).toFixed(0) }}%</span
@@ -1479,5 +1498,28 @@ onMounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.platform-tag {
+  background: #e5e7eb;
+  color: #374151;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75em;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.result-item:has(a[href*="linkedin.com"]) {
+  border-left-color: #0077b5;
+}
+.result-item:has(a[href*="instagram.com"]) {
+  border-left-color: #e1306c;
+}
+.result-item:has(a[href*="facebook.com"]) {
+  border-left-color: #1877f2;
+}
+.result-item:has(a[href*="tiktok.com"]) {
+  border-left-color: #000000;
 }
 </style>
