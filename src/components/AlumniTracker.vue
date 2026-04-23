@@ -236,6 +236,10 @@ const trackAlumni = async (id) => {
   message.value = "Sedang melacak...";
   try {
     const response = await fetch(`${API_BASE_URL}track/${id}`);
+    // const response = await fetch(`${API_BASE_URL}track/${id}`, {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    // });
     if (!response.ok) throw new Error("Failed to track alumni");
 
     const result = await response.json();
@@ -334,7 +338,9 @@ const startTrackingAll = async () => {
 };
 
 onMounted(() => {
-  fetchAlumni();
+  if (activeTab.value === "tracking") {
+    fetchAlumni();
+  }
 });
 </script>
 
@@ -514,7 +520,7 @@ onMounted(() => {
             >
               <div class="alumni-header">
                 <div class="alumni-name-info">
-                  <h3>{{ alumni.nama_asli }}</h3>
+                  <h3>{{ alumni.nama }}</h3>
                   <p class="alumni-id">ID: #{{ alumni.id }}</p>
                 </div>
                 <!-- <span :class="['status-badge', alumni.status.toLowerCase()]">
@@ -523,11 +529,27 @@ onMounted(() => {
               </div>
 
               <div class="alumni-details">
-                <div class="detail-row">
+                <!-- <div class="detail-row">
                   <span class="label">Keywords:</span>
                   <span class="value">{{ alumni.keywords }}</span>
+                </div> -->
+                <div class="detail-row">
+                  <span class="label">Fakultas</span>
+                  <span class="value">{{ alumni.fakultas }}</span>
                 </div>
                 <div class="detail-row">
+                  <span class="label">Prodi</span>
+                  <span class="value">{{ alumni.program_studi }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">Tahun masuk</span>
+                  <span class="value">{{ alumni.tahun_masuk }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">Tanggal Lulus</span>
+                  <span class="value">{{ alumni.tanggal_lulus }}</span>
+                </div>
+                <!-- <div class="detail-row">
                   <span class="label">Score:</span>
                   <div class="score-bar">
                     <div
@@ -538,7 +560,7 @@ onMounted(() => {
                       alumni.confidence_score
                     }}</span>
                   </div>
-                </div>
+                </div> -->
               </div>
 
               <div class="alumni-actions">
