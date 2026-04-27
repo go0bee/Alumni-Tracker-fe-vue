@@ -69,11 +69,11 @@ const fetchAlumni = async () => {
         limit: limit.value,
       },
     });
-    console.log("response: ", res)
+    console.log("response: ", res);
 
     alumni.value = res.data.data;
     totalPages.value = res.data.totalPages;
-    console.log("data laumni: ", alumni.value)
+    console.log("data laumni: ", alumni.value);
   } catch (err) {
     console.error("Error ambil data:", err);
   }
@@ -375,6 +375,10 @@ const startTrackingAll = async () => {
   }
 };
 
+const handleExport = () => {
+  window.open(`${API_BASE_URL}export`, "_blank");
+};
+
 onMounted(() => {
   if (activeTab.value === "tracking") {
     fetchAlumni();
@@ -462,6 +466,10 @@ onMounted(() => {
             >
               <span v-if="!loading">🚀 Start Tracking Semua Alumni</span>
               <span v-else>Tracking...</span>
+            </button>
+
+            <button class="btn-export" @click="handleExport">
+              📥 Export Data
             </button>
           </div>
         </div>
@@ -581,7 +589,9 @@ onMounted(() => {
 
                   <!-- STATUS -->
                   <td>
-                    <span v-if="alumni.is_tracked" class="status-badge">tracked</span>
+                    <span v-if="alumni.is_tracked" class="status-badge"
+                      >tracked</span
+                    >
                     <span v-else class="status-badge">untracked</span>
                     <!-- <span
                       :class="['status-badge', alumni.status.toLowerCase()]"
@@ -1738,5 +1748,13 @@ onMounted(() => {
 }
 .result-item:has(a[href*="tiktok.com"]) {
   border-left-color: #000000;
+}
+
+.btn-export {
+  background-color: #22c55e;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
 }
 </style>
