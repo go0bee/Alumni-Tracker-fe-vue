@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from "vue";
+import axios from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 const getPlatformLabel = (link) => {
@@ -32,26 +33,63 @@ const newEvidence = ref({
 const excelFile = ref(null);
 const excelInputRef = ref(null);
 
+const alumni = ref([]);
+const page = ref(1);
+const limit = ref(20);
+const totalPages = ref(1);
+
 // Fetch all targets from backend
+// const fetchAlumni = async () => {
+//   try {
+//     const response = await fetch(`${API_BASE_URL}all-alumni/`);
+
+//     const text = await response.text(); // ambil response mentah
+//     // console.log("API URL:", API_BASE_URL);
+//     console.log("RAW RESPONSE:", text);
+//     // console.log("ENV:", import.meta.env);
+//     // console.log("API:", import.meta.env.VITE_API_URL);
+
+//     if (!response.ok) {
+//       throw new Error(`HTTP ${response.status}: ${text}`);
+//     }
+
+//     const data = JSON.parse(text);
+//     alumniList.value = data;
+//   } catch (error) {
+//     console.error("Error fetching alumni:", error);
+//     message.value = "Gagal mengambil data alumni";
+//   }
+// };
+
 const fetchAlumni = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}all-alumni/`);
+    const res = await axios.get(`${API_BASE_URL}all-alumni/`, {
+      params: {
+        page: page.value,
+        limit: limit.value,
+      },
+    });
+    console.log("response: ", res)
 
-    const text = await response.text(); // ambil response mentah
-    // console.log("API URL:", API_BASE_URL);
-    console.log("RAW RESPONSE:", text);
-    // console.log("ENV:", import.meta.env);
-    // console.log("API:", import.meta.env.VITE_API_URL);
+    alumni.value = res.data.data;
+    totalPages.value = res.data.totalPages;
+    console.log("data laumni: ", alumni.value)
+  } catch (err) {
+    console.error("Error ambil data:", err);
+  }
+};
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${text}`);
-    }
+const nextPage = () => {
+  if (page.value < totalPages.value) {
+    page.value++;
+    fetchAlumni();
+  }
+};
 
-    const data = JSON.parse(text);
-    alumniList.value = data;
-  } catch (error) {
-    console.error("Error fetching alumni:", error);
-    message.value = "Gagal mengambil data alumni";
+const prevPage = () => {
+  if (page.value > 1) {
+    page.value--;
+    fetchAlumni();
   }
 };
 
@@ -505,6 +543,109 @@ onMounted(() => {
       <div class="card">
         <div class="card-header">
           <h2>👥 Daftar Alumni</h2>
+          <p class="card-subtitle">Total: {{ alumni.length }} alumni</p>
+        </div>
+
+        <div class="card-body">
+          <!-- EMPTY -->
+          <div v-if="alumni.length === 0" class="empty-state">
+            <p class="empty-icon">📭</p>
+            <p>Belum ada data alumni. Mulai dengan menambah alumni baru!</p>
+          </div>
+
+          <!-- TABLE -->
+          <div v-else class="table-container">
+            <table class="alumni-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nama</th>
+                  <th>Fakultas</th>
+                  <th>Prodi</th>
+                  <th>Tahun Masuk</th>
+                  <th>Tanggal Lulus</th>
+                  <th>Status</th>
+                  <th>Score</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr v-for="alumni in alumni" :key="alumni.id">
+                  <td>#{{ alumni.id }}</td>
+                  <td>{{ alumni.nama }}</td>
+                  <td>{{ alumni.fakultas }}</td>
+                  <td>{{ alumni.program_studi }}</td>
+                  <td>{{ alumni.tahun_masuk }}</td>
+                  <td>{{ alumni.tanggal_lulus }}</td>
+
+                  <!-- STATUS -->
+                  <td>
+                    <span v-if="alumni.is_tracked" class="status-badge">tracked</span>
+                    <span v-else class="status-badge">untracked</span>
+                    <!-- <span
+                      :class="['status-badge', alumni.status.toLowerCase()]"
+                    >
+                      {{ alumni.status }}
+                    </span> -->
+                  </td>
+
+                  <!-- SCORE -->
+                  <td>
+                    <div class="score-bar">
+                      <div
+                        class="score-fill"
+                        :style="{ width: alumni.confidence_score * 100 + '%' }"
+                      ></div>
+                      <span class="score-text">
+                        {{ alumni.confidence_score }}
+                      </span>
+                    </div>
+                  </td>
+
+                  <!-- ACTION -->
+                  <td>
+                    <div class="action-group">
+                      <button
+                        @click="trackAlumni(alumni.id)"
+                        :disabled="loading"
+                        class="btn btn-track"
+                      >
+                        🚀
+                      </button>
+
+                      <button
+                        @click="fetchEvidence(alumni.id)"
+                        class="btn btn-detail"
+                      >
+                        🔎
+                      </button>
+
+                      <button
+                        @click="startEditAlumni(alumni)"
+                        class="btn btn-edit"
+                      >
+                        ✏️
+                      </button>
+
+                      <button
+                        @click="deleteAlumni(alumni.id)"
+                        class="btn btn-delete"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- <div class="card">
+        <div class="card-header">
+          <h2>👥 Daftar Alumni</h2>
           <p class="card-subtitle">Total: {{ alumniList.length }} alumni</p>
         </div>
         <div class="card-body">
@@ -523,16 +664,16 @@ onMounted(() => {
                   <h3>{{ alumni.nama }}</h3>
                   <p class="alumni-id">ID: #{{ alumni.id }}</p>
                 </div>
-                <!-- <span :class="['status-badge', alumni.status.toLowerCase()]">
+                <span :class="['status-badge', alumni.status.toLowerCase()]">
                   {{ alumni.status }}
-                </span> -->
+                </span>
               </div>
 
               <div class="alumni-details">
-                <!-- <div class="detail-row">
+                <div class="detail-row">
                   <span class="label">Keywords:</span>
                   <span class="value">{{ alumni.keywords }}</span>
-                </div> -->
+                </div>
                 <div class="detail-row">
                   <span class="label">Fakultas</span>
                   <span class="value">{{ alumni.fakultas }}</span>
@@ -549,7 +690,7 @@ onMounted(() => {
                   <span class="label">Tanggal Lulus</span>
                   <span class="value">{{ alumni.tanggal_lulus }}</span>
                 </div>
-                <!-- <div class="detail-row">
+                <div class="detail-row">
                   <span class="label">Score:</span>
                   <div class="score-bar">
                     <div
@@ -560,7 +701,7 @@ onMounted(() => {
                       alumni.confidence_score
                     }}</span>
                   </div>
-                </div> -->
+                </div>
               </div>
 
               <div class="alumni-actions">
@@ -587,7 +728,7 @@ onMounted(() => {
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
     </div>
 
     <!-- Results Tab -->
@@ -1185,6 +1326,60 @@ onMounted(() => {
 .alumni-actions .btn {
   flex: 1;
   justify-content: center;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.alumni-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.alumni-table th,
+.alumni-table td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+.alumni-table th {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+.alumni-table tr:hover {
+  background: #f5f5f5;
+}
+
+.action-group {
+  display: flex;
+  gap: 5px;
+}
+
+/* reuse style lama kamu */
+.status-badge {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.score-bar {
+  position: relative;
+  background: #eee;
+  height: 6px;
+  border-radius: 4px;
+}
+
+.score-fill {
+  background: #4caf50;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.score-text {
+  font-size: 12px;
 }
 
 /* Status Badges */
