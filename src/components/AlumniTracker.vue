@@ -37,29 +37,8 @@ const alumni = ref([]);
 const page = ref(1);
 const limit = ref(20);
 const totalPages = ref(1);
-
-// Fetch all targets from backend
-// const fetchAlumni = async () => {
-//   try {
-//     const response = await fetch(`${API_BASE_URL}all-alumni/`);
-
-//     const text = await response.text(); // ambil response mentah
-//     // console.log("API URL:", API_BASE_URL);
-//     console.log("RAW RESPONSE:", text);
-//     // console.log("ENV:", import.meta.env);
-//     // console.log("API:", import.meta.env.VITE_API_URL);
-
-//     if (!response.ok) {
-//       throw new Error(`HTTP ${response.status}: ${text}`);
-//     }
-
-//     const data = JSON.parse(text);
-//     alumniList.value = data;
-//   } catch (error) {
-//     console.error("Error fetching alumni:", error);
-//     message.value = "Gagal mengambil data alumni";
-//   }
-// };
+const totalData = ref();
+const currentPage = ref(1);
 
 const fetchAlumni = async () => {
   try {
@@ -72,7 +51,9 @@ const fetchAlumni = async () => {
     console.log("response: ", res);
 
     alumni.value = res.data.data;
+    totalData.value = res.data.totalData;
     totalPages.value = res.data.totalPages;
+    currentPage.value = res.data.currentPage;
     console.log("data laumni: ", alumni.value);
   } catch (err) {
     console.error("Error ambil data:", err);
@@ -271,35 +252,63 @@ const deleteAlumni = async (alumniId) => {
 // Trigger tracking for an alumni
 const trackAlumni = async (id) => {
   loading.value = true;
-  message.value = "Sedang melacak...";
+  message.value = "Sedang melacak social media...";
+
   try {
-    const response = await fetch(`${API_BASE_URL}track/${id}`);
-    // const response = await fetch(`${API_BASE_URL}track/${id}`, {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    // });
+    const response = await fetch(`${API_BASE_URL}track/social/${id}`, {
+      method: "POST",
+    });
+
     if (!response.ok) throw new Error("Failed to track alumni");
 
     const result = await response.json();
-    message.value = `Pelacakan selesai: Status ${result.current_status}, Score ${result.score}`;
 
-    // Penyesuaian mapping data
+    message.value = "Tracking selesai";
+
     trackingResult.value = {
       targetId: id,
-      status: result.current_status,
-      score: result.score,
-      // Data sekarang berisi top 1 per platform (LinkedIn, IG, dll)
-      top_results: result.detail.top_results || [],
-      best_match: result.detail.best_match || null,
+      total: result.detail.total,
+      results: result.detail.results,
     };
 
-    await fetchAlumni();
     activeTab.value = "hasil";
   } catch (error) {
     console.error("Error tracking alumni:", error);
     message.value = "Gagal melacak alumni";
   } finally {
     loading.value = false;
+    await fetchAlumni();
+  }
+};
+
+const batchLimit = ref(50);
+const batchDelay = ref(5000);
+const batchResult = ref(null);
+
+const runBatchTracking = async () => {
+  loading.value = true;
+  message.value = `Menjalankan batch tracking ${batchLimit.value} alumni...`;
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}track/social/batch?limit=${batchLimit.value}&delay=${batchDelay.value}`,
+      {
+        method: "POST",
+      },
+    );
+
+    if (!response.ok) throw new Error("Batch tracking gagal");
+
+    const result = await response.json();
+    batchResult.value = result;
+
+    message.value = `Batch selesai. Success: ${result.success}, Failed: ${result.failed}`;
+  } catch (err) {
+    console.error("Batch tracking error:", err);
+    message.value = "Batch tracking error: " + err.message;
+  } finally {
+    loading.value = false;
+    await fetchAlumni();
   }
 };
 
@@ -474,76 +483,60 @@ onMounted(() => {
           </div>
         </div>
       </div>
-      <!-- Add Alumni Section -->
-      <div class="card add-card">
-        <div class="card-header">
-          <h2>➕ Tambah Alumni Baru</h2>
-          <p class="card-subtitle">
-            Masukkan nama dan keywords untuk memulai pelacakan
-          </p>
-        </div>
-        <div class="card-body">
-          <div class="form-group">
-            <div class="input-wrapper">
-              <input
-                v-if="editMode"
-                v-model="editingAlumni.nama"
-                placeholder="Edit Nama Alumni"
-                class="input-field"
-              />
 
-              <input
-                v-else
-                v-model="newAlumni.nama"
-                placeholder="Nama Lengkap Alumni"
-                class="input-field"
-              />
-              <span class="input-icon">👤</span>
-            </div>
-            <div class="input-wrapper">
-              <input
-                v-if="editMode"
-                v-model="editingAlumni.keywords"
-                placeholder="Edit Keywords"
-                class="input-field"
-              />
+      <div class="batch-box">
+        <h3>Batch Social Tracking</h3>
 
-              <input
-                v-else
-                v-model="newAlumni.keywords"
-                placeholder="Keywords (LinkedIn, Company, dll)"
-                class="input-field"
-              />
-              <span class="input-icon">🔍</span>
-            </div>
-            <div class="button-row">
-              <button
-                v-if="!editMode"
-                @click="addAlumni"
-                :disabled="loading"
-                class="btn btn-primary btn-block"
-              >
-                <span v-if="!loading">Tambah Alumni</span>
-                <span v-else>Menambahkan...</span>
-              </button>
-              <button
-                v-else
-                @click="updateAlumni"
-                :disabled="loading"
-                class="btn btn-primary btn-block"
-              >
-                <span v-if="!loading">Simpan Perubahan</span>
-                <span v-else>Menyimpan...</span>
-              </button>
-              <button
-                v-if="editMode"
-                @click="cancelEditAlumni"
-                class="btn btn-secondary btn-block"
-              >
-                Batalkan
-              </button>
-            </div>
+        <div class="batch-controls">
+          <div class="field">
+            <label>Limit (1 - 1000)</label>
+            <input type="number" v-model="batchLimit" min="1" max="1000" />
           </div>
+
+          <div class="field">
+            <label>Delay (ms)</label>
+            <input type="number" v-model="batchDelay" min="1000" />
+          </div>
+
+          <button
+            class="btn-batch"
+            @click="runBatchTracking"
+            :disabled="loading"
+          >
+            Run Batch Tracking
+          </button>
+        </div>
+
+        <div v-if="batchResult" class="batch-result">
+          <p><b>Total Processed:</b> {{ batchResult.total_processed }}</p>
+          <p><b>Success:</b> {{ batchResult.success }}</p>
+          <p><b>Failed:</b> {{ batchResult.failed }}</p>
+        </div>
+
+        <div v-if="batchResult?.logs?.length" class="batch-logs">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nama</th>
+                <th>Status</th>
+                <th>Error</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-for="log in batchResult.logs" :key="log.id">
+                <td>{{ log.id }}</td>
+                <td>{{ log.nama }}</td>
+                <td>
+                  <span :class="log.status === 'success' ? 'ok' : 'fail'">
+                    {{ log.status }}
+                  </span>
+                </td>
+                <td>{{ log.error || "-" }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -551,12 +544,12 @@ onMounted(() => {
       <div class="card">
         <div class="card-header">
           <h2>👥 Daftar Alumni</h2>
-          <p class="card-subtitle">Total: {{ alumni.length }} alumni</p>
+          <p class="card-subtitle">Total: {{ totalData }} alumni</p>
         </div>
 
         <div class="card-body">
           <!-- EMPTY -->
-          <div v-if="alumni.length === 0" class="empty-state">
+          <div v-if="totalData === 0" class="empty-state">
             <p class="empty-icon">📭</p>
             <p>Belum ada data alumni. Mulai dengan menambah alumni baru!</p>
           </div>
@@ -649,96 +642,30 @@ onMounted(() => {
                 </tr>
               </tbody>
             </table>
-          </div>
-        </div>
-      </div>
+            <div class="pagination">
+              <button
+                class="btn-page"
+                @click="prevPage"
+                :disabled="currentPage === 1 || loading"
+              >
+                ⬅ Prev
+              </button>
 
-      <!-- <div class="card">
-        <div class="card-header">
-          <h2>👥 Daftar Alumni</h2>
-          <p class="card-subtitle">Total: {{ alumniList.length }} alumni</p>
-        </div>
-        <div class="card-body">
-          <div v-if="alumniList.length === 0" class="empty-state">
-            <p class="empty-icon">📭</p>
-            <p>Belum ada data alumni. Mulai dengan menambah alumni baru!</p>
-          </div>
-          <div v-else class="alumni-grid">
-            <div
-              v-for="alumni in alumniList"
-              :key="alumni.id"
-              class="alumni-card"
-            >
-              <div class="alumni-header">
-                <div class="alumni-name-info">
-                  <h3>{{ alumni.nama }}</h3>
-                  <p class="alumni-id">ID: #{{ alumni.id }}</p>
-                </div>
-                <span :class="['status-badge', alumni.status.toLowerCase()]">
-                  {{ alumni.status }}
-                </span>
-              </div>
+              <span class="page-info">
+                Page {{ currentPage }} / {{ totalPages }}
+              </span>
 
-              <div class="alumni-details">
-                <div class="detail-row">
-                  <span class="label">Keywords:</span>
-                  <span class="value">{{ alumni.keywords }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Fakultas</span>
-                  <span class="value">{{ alumni.fakultas }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Prodi</span>
-                  <span class="value">{{ alumni.program_studi }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Tahun masuk</span>
-                  <span class="value">{{ alumni.tahun_masuk }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Tanggal Lulus</span>
-                  <span class="value">{{ alumni.tanggal_lulus }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Score:</span>
-                  <div class="score-bar">
-                    <div
-                      class="score-fill"
-                      :style="{ width: alumni.confidence_score * 100 + '%' }"
-                    ></div>
-                    <span class="score-text">{{
-                      alumni.confidence_score
-                    }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="alumni-actions">
-                <button
-                  @click="trackAlumni(alumni.id)"
-                  :disabled="loading"
-                  class="btn btn-track"
-                >
-                  🚀 Track
-                </button>
-                <button
-                  @click="fetchEvidence(alumni.id)"
-                  class="btn btn-detail"
-                >
-                  🔎 Details
-                </button>
-                <button @click="startEditAlumni(alumni)" class="btn btn-edit">
-                  ✏️ Edit
-                </button>
-                <button @click="deleteAlumni(alumni.id)" class="btn btn-delete">
-                  🗑️ Hapus
-                </button>
-              </div>
+              <button
+                class="btn-page"
+                @click="nextPage"
+                :disabled="currentPage === totalPages || loading"
+              >
+                Next ➡
+              </button>
             </div>
           </div>
         </div>
-      </div> -->
+      </div>
     </div>
 
     <!-- Results Tab -->
@@ -1097,6 +1024,33 @@ onMounted(() => {
   background: #ef4444 !important;
   padding: 8px 16px !important;
   font-size: 0.9em !important;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.btn-page {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+.btn-page:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-weight: bold;
+  font-size: 14px;
 }
 
 /* Form Elements */
@@ -1714,6 +1668,81 @@ onMounted(() => {
   .result-rank {
     align-self: flex-start;
   }
+}
+
+.batch-box {
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  margin-bottom: 20px;
+  background: #f9f9ff;
+}
+
+.batch-controls {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field input {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  width: 150px;
+}
+
+.btn-batch {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #6d28d9;
+  color: white;
+  cursor: pointer;
+}
+
+.btn-batch:disabled {
+  background: gray;
+  cursor: not-allowed;
+}
+
+.batch-result {
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.batch-logs {
+  margin-top: 16px;
+  max-height: 250px;
+  overflow: auto;
+}
+
+.batch-logs table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.batch-logs th,
+.batch-logs td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.ok {
+  color: green;
+  font-weight: bold;
+}
+
+.fail {
+  color: red;
+  font-weight: bold;
 }
 
 /* Transitions */
