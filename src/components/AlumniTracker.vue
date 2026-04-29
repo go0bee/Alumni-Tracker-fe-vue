@@ -265,13 +265,24 @@ const trackAlumni = async (id) => {
 
     message.value = "Tracking selesai";
 
-    trackingResult.value = {
-      targetId: id,
-      total: result.detail.total,
-      results: result.detail.results,
-    };
+    trackingResult.value = result.tracking_result
+      ? {
+          targetId: result.target_id,
+          status: result.status,
+          link_linkedin: result.tracking_result.link_linkedin,
+          link_instagram: result.tracking_result.link_instagram,
+          link_facebook: result.tracking_result.link_facebook,
+          link_tiktok: result.tracking_result.link_tiktok,
+          posisi_kerja: result.tracking_result.posisi_kerja,
+          tempat_kerja: result.tracking_result.tempat_kerja,
+          pendidikan: result.tracking_result.pendidikan,
+          tahun_pendidikan: result.tracking_result.tahun_pendidikan,
+          // createdAt: result.tracking_result.createdAt,
+        }
+      : null;
 
     activeTab.value = "hasil";
+
   } catch (error) {
     console.error("Error tracking alumni:", error);
     message.value = "Gagal melacak alumni";
@@ -689,68 +700,100 @@ onMounted(() => {
                   <strong>Target ID:</strong>
                   <span class="highlight">#{{ trackingResult.targetId }}</span>
                 </p>
-                <p>
-                  <strong>Status:</strong>
-                  <span class="highlight">{{ trackingResult.status }}</span>
+
+                <p v-if="trackingResult.posisi_kerja">
+                  <strong>Posisi:</strong>
+                  <span class="highlight">{{
+                    trackingResult.posisi_kerja
+                  }}</span>
                 </p>
-                <p>
-                  <strong>Confidence Score:</strong>
-                  <span class="highlight"
-                    >{{ (trackingResult.score * 100).toFixed(1) }}%</span
-                  >
+
+                <p v-if="trackingResult.tempat_kerja">
+                  <strong>Perusahaan:</strong>
+                  <span class="highlight">{{
+                    trackingResult.tempat_kerja
+                  }}</span>
+                </p>
+
+                <p v-if="trackingResult.pendidikan">
+                  <strong>Pendidikan:</strong>
+                  <span class="highlight">{{ trackingResult.pendidikan }}</span>
+                </p>
+
+                <p v-if="trackingResult.tahun_pendidikan">
+                  <strong>Tahun Pendidikan:</strong>
+                  <span class="highlight">{{
+                    trackingResult.tahun_pendidikan
+                  }}</span>
                 </p>
               </div>
             </div>
 
             <div class="results-section">
-              <h3>🏆 Top Hasil</h3>
+              <h3>🔗 Social Media Links</h3>
+
               <div
-                v-if="trackingResult.top_results.length === 0"
+                v-if="
+                  !trackingResult.link_linkedin &&
+                  !trackingResult.link_instagram &&
+                  !trackingResult.link_facebook &&
+                  !trackingResult.link_tiktok
+                "
                 class="no-results"
               >
-                <p>Tidak ada hasil relevan ditemukan</p>
+                <p>Tidak ada link social media yang tersimpan di database</p>
               </div>
-              <div
-                v-for="(item, idx) in trackingResult.top_results"
-                :key="idx"
-                class="result-item"
-              >
-                <div class="result-rank">
-                  {{ getPlatformLabel(item.link)[0] }}
-                </div>
 
+              <div v-if="trackingResult.link_linkedin" class="result-item">
                 <div class="result-content">
-                  <div style="display: flex; align-items: center; gap: 8px">
-                    <span class="platform-tag">{{
-                      getPlatformLabel(item.link)
-                    }}</span>
-                    <h4>{{ item.title }}</h4>
-                  </div>
-                  <p class="snippet">{{ item.snippet }}</p>
-                  <a :href="item.link" target="_blank" class="result-link"
-                    >Buka Profil {{ getPlatformLabel(item.link) }} →</a
+                  <span class="platform-tag">LinkedIn</span>
+                  <a
+                    :href="trackingResult.link_linkedin"
+                    target="_blank"
+                    class="result-link"
                   >
-                </div>
-
-                <div class="result-score">
-                  <span class="score-badge"
-                    >{{ (item.score * 100).toFixed(0) }}%</span
-                  >
+                    Buka Profil LinkedIn →
+                  </a>
                 </div>
               </div>
-            </div>
 
-            <div v-if="trackingResult.best_match" class="results-section">
-              <h3>⭐ Best Match</h3>
-              <div class="best-match-card">
-                <h4>{{ trackingResult.best_match.title }}</h4>
-                <p class="snippet">{{ trackingResult.best_match.snippet }}</p>
-                <a
-                  :href="trackingResult.best_match.link"
-                  target="_blank"
-                  class="result-link"
-                  >Lihat Link →</a
-                >
+              <div v-if="trackingResult.link_instagram" class="result-item">
+                <div class="result-content">
+                  <span class="platform-tag">Instagram</span>
+                  <a
+                    :href="trackingResult.link_instagram"
+                    target="_blank"
+                    class="result-link"
+                  >
+                    Buka Profil Instagram →
+                  </a>
+                </div>
+              </div>
+
+              <div v-if="trackingResult.link_facebook" class="result-item">
+                <div class="result-content">
+                  <span class="platform-tag">Facebook</span>
+                  <a
+                    :href="trackingResult.link_facebook"
+                    target="_blank"
+                    class="result-link"
+                  >
+                    Buka Profil Facebook →
+                  </a>
+                </div>
+              </div>
+
+              <div v-if="trackingResult.link_tiktok" class="result-item">
+                <div class="result-content">
+                  <span class="platform-tag">TikTok</span>
+                  <a
+                    :href="trackingResult.link_tiktok"
+                    target="_blank"
+                    class="result-link"
+                  >
+                    Buka Profil TikTok →
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -758,7 +801,7 @@ onMounted(() => {
       </div>
 
       <!-- Evidence Section -->
-      <div v-if="selectedEvidence" class="card evidence-card">
+      <!-- <div v-if="selectedEvidence" class="card evidence-card">
         <div class="card-header">
           <h2>🔐 Detail Evidence - Alumni #{{ viewingAlumniId }}</h2>
           <button @click="selectedEvidence = null" class="btn btn-close">
@@ -767,7 +810,6 @@ onMounted(() => {
         </div>
 
         <div class="card-body">
-          <!-- Manual Evidence Form -->
           <div class="manual-evidence-form">
             <h3>➕ Tambah Bukti Manual</h3>
             <div class="form-group">
@@ -811,7 +853,6 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Evidence List -->
           <div class="evidence-list">
             <h3>📋 Bukti Pelacakan</h3>
             <div v-if="selectedEvidence.length === 0" class="empty-state">
@@ -844,7 +885,7 @@ onMounted(() => {
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
