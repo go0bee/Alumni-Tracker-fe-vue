@@ -48,13 +48,13 @@ const fetchAlumni = async () => {
         limit: limit.value,
       },
     });
-    console.log("response: ", res);
+    // console.log("response: ", res);
 
     alumni.value = res.data.data;
     totalData.value = res.data.totalData;
     totalPages.value = res.data.totalPages;
     currentPage.value = res.data.currentPage;
-    console.log("data laumni: ", alumni.value);
+    // console.log("data laumni: ", alumni.value);
   } catch (err) {
     console.error("Error ambil data:", err);
   }
@@ -299,6 +299,7 @@ const batchResult = ref(null);
 const runBatchTracking = async () => {
   loading.value = true;
   message.value = `Menjalankan batch tracking ${batchLimit.value} alumni...`;
+  console.log("FINAL URL:", `${API_BASE_URL}track/social/batch?limit=...`);
 
   try {
     const response = await fetch(
@@ -308,7 +309,8 @@ const runBatchTracking = async () => {
       },
     );
 
-    if (!response.ok) throw new Error("Batch tracking gagal");
+    // if (!response.ok) throw new Error("Batch tracking gagal");
+    if (!response.ok) console.log("error bro ", response)
 
     const result = await response.json();
     batchResult.value = result;
@@ -319,7 +321,7 @@ const runBatchTracking = async () => {
     message.value = "Batch tracking error: " + err.message;
   } finally {
     loading.value = false;
-    await fetchAlumni();
+    // await fetchAlumni();
   }
 };
 
